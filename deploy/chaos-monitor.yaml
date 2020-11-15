@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chaos-framework-admin
+  namespace: chaos-framework
+  labels:
+    name: chaos-framework-admin
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: chaos-framework-admin
+  labels:
+    name: chaos-framework-admin
+rules:
+  - apiGroups: [ "","apps","batch","extensions" ]
+    resources: [ "pods","pods/exec","pods/eviction","jobs","daemonsets","events" ]
+    verbs: [ "create","delete","get","list","patch","update", "deletecollection" ]
+  - apiGroups: [ "","apps" ]
+    resources: [ "configmaps","secrets","services","chaosexperiments","pods/log","replicasets","deployments","statefulsets","services" ]
+    verbs: [ "get","list","patch","update" ]
+  - apiGroups: [ "" ]
+    resources: [ "nodes" ]
+    verbs: [ "get","list","patch","update" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: chaos-framework-admin
+  labels:
+    name: chaos-framework-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: chaos-framework-admin
+subjects:
+  - kind: ServiceAccount
+    name: chaos-framework-admin
+    namespace: chaos-framework
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monitor
+  namespace: chaos-framework
+  labels:
+    app: monitor
+spec:
+  selector:
+    matchLabels:
+      app: monitor
+  template:
+    metadata:
+      labels:
+        app: monitor
+    spec:
+      serviceAccountName: chaos-framework-admin
+      containers:
+        - name: monitor
+          image: iskorotkov/chaos-monitor:v1.1.0
+          env:
+            - name: MONGO_USERNAME
+              value: root
+            - name: MONGO_PASSWORD
+              value: password
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: chaos-framework
+  labels:
+    app: mongodb
+spec:
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:4.0.21
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: root
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              value: password
+          # TODO: mount persistent storage
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: chaos-framework
+spec:
+  selector:
+    app: mongodb
+  ports:
+    - port: 27017
+      targetPort: 27017
