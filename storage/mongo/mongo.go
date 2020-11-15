@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"os"
 	"time"
 )
 
@@ -80,7 +81,12 @@ func Connect(host string, port int) (storage.Storage, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	auth := options.Credential{
+		Username: os.Getenv("MONGO_USERNAME"),
+		Password: os.Getenv("MONGO_PASSWORD"),
+	}
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri).SetAuth(auth))
 	if err != nil {
 		fmt.Println(err)
 		return nil, ConnectionError
