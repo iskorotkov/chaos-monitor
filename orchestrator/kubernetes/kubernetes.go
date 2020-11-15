@@ -29,7 +29,7 @@ func (k Kubernetes) GetPods() ([]orchestrator.Pod, error) {
 		return nil, PodsError
 	}
 
-	result := make([]orchestrator.Pod, len(pods.Items))
+	result := make([]orchestrator.Pod, 0)
 	for _, pod := range pods.Items {
 		p := orchestrator.Pod{
 			Name:     pod.Name,
