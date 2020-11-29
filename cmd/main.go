@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/iskorotkov/chaos-monitor/orchestrator/kubernetes"
-	"github.com/iskorotkov/chaos-monitor/storage"
-	"github.com/iskorotkov/chaos-monitor/storage/mongo"
+	"github.com/iskorotkov/chaos-monitor/pkg/orchestrators/kubernetes"
+	"github.com/iskorotkov/chaos-monitor/pkg/storage"
+	"github.com/iskorotkov/chaos-monitor/pkg/storage/mongo"
 	"time"
 )
 

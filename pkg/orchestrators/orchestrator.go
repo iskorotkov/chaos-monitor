@@ -1,4 +1,4 @@
-package orchestrator
+package orchestrators
 
 type Pod struct {
 	Name     string

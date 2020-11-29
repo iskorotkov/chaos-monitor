@@ -9,5 +9,5 @@ RUN go install -v ./...
 #final stage
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
-COPY --from=builder /go/bin/chaos-monitor /app
+COPY --from=builder /go/bin/cmd /app
 ENTRYPOINT ["./app"]

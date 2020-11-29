@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/iskorotkov/chaos-monitor/orchestrator"
+	"github.com/iskorotkov/chaos-monitor/pkg/orchestrators"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -21,7 +21,7 @@ type Kubernetes struct {
 	clientset *kubernetes.Clientset
 }
 
-func (k Kubernetes) GetPods() ([]orchestrator.Pod, error) {
+func (k Kubernetes) GetPods() ([]orchestrators.Pod, error) {
 
 	pods, err := k.clientset.CoreV1().Pods(k.namespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
@@ -29,9 +29,9 @@ func (k Kubernetes) GetPods() ([]orchestrator.Pod, error) {
 		return nil, PodsError
 	}
 
-	result := make([]orchestrator.Pod, 0)
+	result := make([]orchestrators.Pod, 0)
 	for _, pod := range pods.Items {
-		p := orchestrator.Pod{
+		p := orchestrators.Pod{
 			Name:     pod.Name,
 			Status:   string(pod.Status.Phase),
 			Restarts: int(pod.Status.ContainerStatuses[0].RestartCount),
@@ -42,7 +42,7 @@ func (k Kubernetes) GetPods() ([]orchestrator.Pod, error) {
 	return result, nil
 }
 
-func Connect(namespace string) (orchestrator.Orchestrator, error) {
+func Connect(namespace string) (orchestrators.Orchestrator, error) {
 
 	config, err := rest.InClusterConfig()
 	if err != nil {

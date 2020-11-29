@@ -1,13 +1,13 @@
 package storage
 
 import (
-	"github.com/iskorotkov/chaos-monitor/orchestrator"
+	"github.com/iskorotkov/chaos-monitor/pkg/orchestrators"
 	"time"
 )
 
 type Snapshot struct {
 	Timestamp time.Time
-	Pods      []orchestrator.Pod
+	Pods      []orchestrators.Pod
 }
 
 type Storage interface {

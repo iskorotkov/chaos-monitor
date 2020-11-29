@@ -59,7 +59,7 @@ spec:
       serviceAccountName: chaos-framework-admin
       containers:
         - name: monitor
-          image: iskorotkov/chaos-monitor:v0.1.1
+          image: iskorotkov/chaos-monitor:v0.1.2
           env:
             - name: MONGO_USERNAME
               value: root
