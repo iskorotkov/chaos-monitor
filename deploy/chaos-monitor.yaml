@@ -1,4 +1,9 @@
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: chaos-framework
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: chaos-framework-admin
@@ -15,13 +20,13 @@ metadata:
 rules:
   - apiGroups: [ "","apps","batch","extensions" ]
     resources: [ "pods","pods/exec","pods/eviction","jobs","daemonsets","events" ]
-    verbs: [ "create","delete","get","list","patch","update", "deletecollection" ]
+    verbs: [ "create","delete","get","list","patch","update","deletecollection","watch" ]
   - apiGroups: [ "","apps" ]
     resources: [ "configmaps","secrets","services","chaosexperiments","pods/log","replicasets","deployments","statefulsets","services" ]
-    verbs: [ "get","list","patch","update" ]
+    verbs: [ "get","list","patch","update","watch" ]
   - apiGroups: [ "" ]
     resources: [ "nodes" ]
-    verbs: [ "get","list","patch","update" ]
+    verbs: [ "get","list","patch","update","watch" ]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -59,7 +64,7 @@ spec:
       serviceAccountName: chaos-framework-admin
       containers:
         - name: monitor
-          image: iskorotkov/chaos-monitor:v0.1.2
+          image: iskorotkov/chaos-monitor:v0.2.0-alpha.4
           env:
             - name: MONGO_USERNAME
               value: root
@@ -69,50 +74,3 @@ spec:
             limits:
               memory: "128Mi"
               cpu: "500m"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mongodb
-  namespace: chaos-framework
-  labels:
-    app: mongodb
-spec:
-  strategy:
-    type: Recreate
-  selector:
-    matchLabels:
-      app: mongodb
-  template:
-    metadata:
-      labels:
-        app: mongodb
-    spec:
-      containers:
-        - name: mongodb
-          image: mongo:4.0.21
-          ports:
-            - containerPort: 27017
-              hostPort: 27017
-          env:
-            - name: MONGO_INITDB_ROOT_USERNAME
-              value: root
-            - name: MONGO_INITDB_ROOT_PASSWORD
-              value: password
-          # TODO: mount persistent storage
-          resources:
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mongodb
-  namespace: chaos-framework
-spec:
-  selector:
-    app: mongodb
-  ports:
-    - port: 27017
-      targetPort: 27017
