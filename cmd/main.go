@@ -18,7 +18,6 @@ import (
 )
 
 var (
-	outOfCluster    = os.Getenv("OUT_OF_CLUSTER")
 	targetNamespace = os.Getenv("TARGET_NAMESPACE")
 	crashTolerance  = os.Getenv("CRASH_TOLERANCE")
 	workDuration    = os.Getenv("DURATION")
@@ -88,21 +87,20 @@ func parseCrashTolerances() map[string]int {
 }
 
 func createConfig() *rest.Config {
-	if outOfCluster == "1" || outOfCluster == "true" {
-		configFile := filepath.Join(homedir.HomeDir(), ".kube", "config")
-
-		config, err := clientcmd.BuildConfigFromFlags("", configFile)
-		if err != nil {
-			log.Println(err)
-			log.Fatal("couldn't read Kubernetes config file")
-		}
-
-		return config
-	} else {
+	if os.Getenv("KUBERNETES_SERVICE_HOST") != "" {
 		config, err := rest.InClusterConfig()
 		if err != nil {
 			log.Println(err)
 			log.Fatal("couldn't create in-cluster config")
+		}
+
+		return config
+	} else {
+		configFile := filepath.Join(homedir.HomeDir(), ".kube", "config")
+		config, err := clientcmd.BuildConfigFromFlags("", configFile)
+		if err != nil {
+			log.Println(err)
+			log.Fatal("couldn't read Kubernetes config file")
 		}
 
 		return config
