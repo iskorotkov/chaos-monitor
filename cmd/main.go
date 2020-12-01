@@ -73,14 +73,12 @@ func parseCrashTolerances() map[string]int {
 	for _, entry := range entries {
 		kv := strings.SplitN(entry, "=", 2)
 		if len(kv) != 2 {
-			log.Println(fmt.Sprintf("couldn't split '%s' on key-value pair", entry))
-			continue
+			log.Fatal(fmt.Sprintf("couldn't split '%s' on key-value pair", entry))
 		}
 
 		num, err := strconv.ParseInt(kv[1], 10, 32)
 		if err != nil {
-			log.Println(fmt.Sprintf("couldn't parse '%v' to int", num))
-			continue
+			log.Fatal(fmt.Sprintf("couldn't parse '%v' to int", num))
 		}
 
 		res[kv[0]] = int(num)
@@ -123,23 +121,25 @@ func onUpdate(_, newObj interface{}, crashTolerances map[string]int) {
 		log.Fatal("couldn't cast object to pod")
 	}
 
-	containers := pod.Status.ContainerStatuses
-	if len(containers) >= 1 {
-		mainContainer := containers[0]
-		if mainContainer.State.Terminated != nil {
-			reason := mainContainer.State.Terminated.Reason
+	for _, container := range pod.Status.ContainerStatuses {
+		if container.State.Terminated == nil {
+			continue
+		}
 
-			tolerance, ok := crashTolerances[mainContainer.Name]
-			if !ok || tolerance == 0 {
-				log.Fatal(fmt.Sprintf("%s: %s - crash tolerance exceeded", pod.Name, reason))
-			} else if tolerance > 0 {
-				tolerance--
-				crashTolerances[mainContainer.Name] = tolerance
+		if container.State.Terminated.Reason != "Error" {
+			continue
+		}
 
-				log.Println(fmt.Sprintf("%s: %s - tolerate %d more crashes", pod.Name, reason, tolerance))
-			} else {
-				log.Println(fmt.Sprintf("%s: %s - tolerate crashes indefinitely", pod.Name, reason))
-			}
+		tolerance, ok := crashTolerances[container.Name]
+		if !ok || tolerance == 0 {
+			log.Fatal(fmt.Sprintf("%s in %s: crash tolerance exceeded", container.Name, pod.Name))
+		} else if tolerance > 0 {
+			tolerance--
+			crashTolerances[container.Name] = tolerance
+
+			log.Println(fmt.Sprintf("%s in %s: tolerate %d more crashes", container.Name, pod.Name, tolerance))
+		} else {
+			log.Println(fmt.Sprintf("%s in %s: tolerate crashes indefinitely", container.Name, pod.Name))
 		}
 	}
 }
