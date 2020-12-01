@@ -20,7 +20,7 @@ import (
 var (
 	outOfCluster    = os.Getenv("OUT_OF_CLUSTER")
 	targetNamespace = os.Getenv("TARGET_NAMESPACE")
-	crashTolerances = os.Getenv("CRASH_TOLERANCES")
+	crashTolerance  = os.Getenv("CRASH_TOLERANCE")
 	workDuration    = os.Getenv("DURATION")
 )
 
@@ -65,11 +65,11 @@ func main() {
 func parseCrashTolerances() map[string]int {
 	res := make(map[string]int)
 
-	if crashTolerances == "" {
+	if crashTolerance == "" {
 		return res
 	}
 
-	entries := strings.Split(crashTolerances, ";")
+	entries := strings.Split(crashTolerance, ";")
 	for _, entry := range entries {
 		kv := strings.SplitN(entry, "=", 2)
 		if len(kv) != 2 {
@@ -130,19 +130,15 @@ func onUpdate(_, newObj interface{}, crashTolerances map[string]int) {
 			reason := mainContainer.State.Terminated.Reason
 
 			tolerance, ok := crashTolerances[mainContainer.Name]
-			if ok {
-				if tolerance == 0 {
-					log.Fatal(fmt.Sprintf("%s: %s - crash tolerance exceeded", pod.Name, reason))
-				} else if tolerance > 0 {
-					tolerance--
-					crashTolerances[mainContainer.Name] = tolerance
+			if !ok || tolerance == 0 {
+				log.Fatal(fmt.Sprintf("%s: %s - crash tolerance exceeded", pod.Name, reason))
+			} else if tolerance > 0 {
+				tolerance--
+				crashTolerances[mainContainer.Name] = tolerance
 
-					log.Println(fmt.Sprintf("%s: %s - tolerate %d more failures", pod.Name, reason, tolerance))
-				} else {
-					log.Println(fmt.Sprintf("%s: %s - tolerate crashes indefinitely", pod.Name, reason))
-				}
+				log.Println(fmt.Sprintf("%s: %s - tolerate %d more crashes", pod.Name, reason, tolerance))
 			} else {
-				log.Println(fmt.Sprintf("%s: %s - crash tolerance not specified", pod.Name, reason))
+				log.Println(fmt.Sprintf("%s: %s - tolerate crashes indefinitely", pod.Name, reason))
 			}
 		}
 	}
