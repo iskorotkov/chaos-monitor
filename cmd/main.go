@@ -51,13 +51,13 @@ func main() {
 			log.Fatal(fmt.Sprintf("couldn't parse duration '%s'", workDuration))
 		}
 
-		log.Println(fmt.Sprintf("working for %d", duration))
+		log.Println(fmt.Sprintf("running for %s", duration.String()))
 		go controller.Run(stopCh)
 
 		time.Sleep(duration)
 		stopCh <- struct{}{}
 	} else {
-		log.Println("working indefinitely")
+		log.Println("running indefinitely")
 		controller.Run(stopCh)
 	}
 }
