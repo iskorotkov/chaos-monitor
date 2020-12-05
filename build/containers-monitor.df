@@ -9,5 +9,5 @@ RUN go install -v ./...
 #final stage
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
-COPY --from=builder /go/bin/cmd /app
+COPY --from=builder /go/bin/containers-monitor /app
 ENTRYPOINT ["./app"]
