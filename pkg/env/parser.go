@@ -7,6 +7,17 @@ import (
 	"strings"
 )
 
+func ParseList(list string) map[string]bool {
+	res := make(map[string]bool)
+	entries := strings.Split(list, ";")
+
+	for _, entry := range entries {
+		res[entry] = true
+	}
+
+	return res
+}
+
 func ParseNames(crashTolerance string) map[string]int {
 	res := make(map[string]int)
 

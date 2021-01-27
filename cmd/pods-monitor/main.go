@@ -15,6 +15,7 @@ var (
 	appLabel    = os.Getenv("APP_LABEL")
 	runDuration = os.Getenv("DURATION")
 	tolerances  = env.ParseLabels(os.Getenv("CRASH_TOLERANCE"))
+	ignored     = env.ParseList(os.Getenv("IGNORED_NODES"))
 )
 
 func main() {
@@ -29,6 +30,10 @@ func OnUpdate(_, newObj interface{}) {
 	pod, ok := newObj.(*v1.Pod)
 	if !ok {
 		log.Fatal("couldn't cast object to pod")
+	}
+
+	if ignored[pod.Spec.NodeName] {
+		return
 	}
 
 	containersFailed := false
