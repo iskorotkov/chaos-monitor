@@ -1,13 +1,20 @@
-#build stage
+FROM alpine:latest as base
+
+# prepare
 FROM golang:alpine AS builder
 RUN apk add --no-cache git
 WORKDIR /go/src/app
-COPY . .
+
+# restore packages
+COPY ["go.mod", "go.sum", "./"]
 RUN go get -d -v ./...
+
+# build
+COPY . .
 RUN go install -v ./...
 
-#final stage
-FROM alpine:latest
+# run
+FROM base as run
 RUN apk --no-cache add ca-certificates
-COPY --from=builder /go/bin/containers-monitor /app
+COPY --from=builder /go/bin/pods-monitor /app
 ENTRYPOINT ["./app"]
