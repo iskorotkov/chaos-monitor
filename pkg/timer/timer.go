@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func Run(f func(<-chan struct{}), durationStr string) {
+func RunFor(f func(<-chan struct{}), durationStr string) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 
