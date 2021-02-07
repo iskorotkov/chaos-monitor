@@ -2,6 +2,11 @@
 
 Chaos Monitor is used to detect pod failures in a Kubernetes cluster.
 
+- [Chaos Monitor](#chaos-monitor)
+  - [Features](#features)
+  - [Env vars](#env-vars)
+  - [Development](#development)
+
 ## Features
 
 - filter pod update events to find pod failures
