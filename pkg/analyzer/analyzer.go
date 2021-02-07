@@ -1,15 +1,18 @@
-package detector
+// Package analyzer analyzes pod updates to find pod failures.
+package analyzer
 
 import (
+	"bytes"
 	"fmt"
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"log"
 	"math/rand"
 	"reflect"
 )
 
+// Pod is a for Kubernetes pod.
 type Pod v1.Pod
-type Message string
 
 func (p Pod) Generate(rand *rand.Rand, _ int) reflect.Value {
 	reason := ""
@@ -61,12 +64,14 @@ func (p Pod) Generate(rand *rand.Rand, _ int) reflect.Value {
 	})
 }
 
-type FailureDetector struct {
+// Analyzer analyzes pod updates to find pod failures.
+type Analyzer struct {
 	ignoredPods, ignoredDeployments, ignoredNodes map[string]bool
 	appLabel                                      string
+	logger                                        *log.Logger
 }
 
-func (p FailureDetector) Generate(rand *rand.Rand, _ int) reflect.Value {
+func (p Analyzer) Generate(rand *rand.Rand, _ int) reflect.Value {
 	randomMap := func(prefix string) map[string]bool {
 		values := make(map[string]bool)
 		for i := 0; i < rand.Intn(20); i++ {
@@ -77,15 +82,17 @@ func (p FailureDetector) Generate(rand *rand.Rand, _ int) reflect.Value {
 		return values
 	}
 
-	return reflect.ValueOf(FailureDetector{
+	return reflect.ValueOf(Analyzer{
 		ignoredPods:        randomMap("name"),
 		ignoredDeployments: randomMap("app-label"),
 		ignoredNodes:       randomMap("node-name"),
 		appLabel:           fmt.Sprintf("app-label-%d", rand.Intn(10)),
+		logger:             log.New(&bytes.Buffer{}, "", 0),
 	})
 }
 
-func (p FailureDetector) Updated(pod *Pod) (Message, error) {
+// Analyze returns an error if the pod has failed and the pod wasn't in ignore list.
+func (p Analyzer) Analyze(pod *Pod) error {
 	podName := pod.Name
 	deploymentName, hasDeployment := pod.Labels[p.appLabel]
 	nodeName := pod.Spec.NodeName
@@ -105,35 +112,39 @@ func (p FailureDetector) Updated(pod *Pod) (Message, error) {
 	}
 
 	if containersFailed {
-		ignoredMessage := Message(fmt.Sprintf("pod '%s' with label '%s' crashed on node '%s' and was ignored",
-			podName, deploymentName, nodeName))
+		ignoredMessage := fmt.Sprintf("pod '%s' with label '%s' crashed on node '%s' and was ignored",
+			podName, deploymentName, nodeName)
 
 		if p.ignoredNodes[nodeName] {
-			return ignoredMessage, nil
+			p.logger.Println(ignoredMessage)
+			return nil
 		}
 
 		if p.ignoredPods[podName] {
-			return ignoredMessage, nil
+			p.logger.Println(ignoredMessage)
+			return nil
 		}
 
 		if hasDeployment {
 			if p.ignoredDeployments[deploymentName] {
-				return ignoredMessage, nil
+				p.logger.Println(ignoredMessage)
+				return nil
 			}
 		}
 
-		return "", fmt.Errorf("pod '%s' with label '%s' crashed on node '%s' and caused fail",
+		return fmt.Errorf("pod '%s' with label '%s' crashed on node '%s' and caused fail",
 			podName, deploymentName, nodeName)
 	}
 
-	return "", nil
+	return nil
 }
 
-func NewFailureDetector(ignoredPods, ignoredDeployments, ignoredNodes map[string]bool, appLabel string) FailureDetector {
-	return FailureDetector{
+func NewAnalyzer(ignoredPods, ignoredDeployments, ignoredNodes map[string]bool, appLabel string, logger *log.Logger) Analyzer {
+	return Analyzer{
 		ignoredPods:        ignoredPods,
 		ignoredDeployments: ignoredDeployments,
 		ignoredNodes:       ignoredNodes,
 		appLabel:           appLabel,
+		logger:             logger,
 	}
 }

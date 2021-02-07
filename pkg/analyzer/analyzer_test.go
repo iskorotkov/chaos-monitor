@@ -1,4 +1,4 @@
-package detector
+package analyzer
 
 import (
 	"fmt"
@@ -7,11 +7,11 @@ import (
 	"testing/quick"
 )
 
-func TestFailureDetector_Updated(t *testing.T) {
+func TestAnalyzer_Analyze(t *testing.T) {
 	t.Parallel()
 
 	r := rand.New(rand.NewSource(0))
-	f := func(detector FailureDetector, pod Pod) bool {
+	f := func(detector Analyzer, pod Pod) bool {
 		pod.Labels[detector.appLabel] = fmt.Sprintf("label-%d", r.Intn(20))
 
 		shouldBeIgnored := detector.ignoredPods[pod.Name] ||
@@ -20,7 +20,7 @@ func TestFailureDetector_Updated(t *testing.T) {
 
 		podFailed := pod.Status.ContainerStatuses[0].State.Terminated.Reason == "Error"
 
-		message, err := detector.Updated(&pod)
+		err := detector.Analyze(&pod)
 		if err != nil {
 			if !podFailed {
 				t.Log("pod hasn't failed but fail was triggered")
@@ -38,16 +38,6 @@ func TestFailureDetector_Updated(t *testing.T) {
 
 		if podFailed && !shouldBeIgnored {
 			t.Log("failed pod must cause a test fail")
-			return false
-		}
-
-		if message == "" && podFailed {
-			t.Log("detector must return meaningful message when pod failed")
-			return false
-		}
-
-		if !podFailed && message != "" {
-			t.Log("detector must return empty string if pod hasn't failed")
 			return false
 		}
 

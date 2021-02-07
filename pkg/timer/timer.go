@@ -1,3 +1,4 @@
+// Package timer handles running functions for specified amount of time.
 package timer
 
 import (
@@ -6,6 +7,8 @@ import (
 	"time"
 )
 
+// RunFor runs a function for a specified amount of time.
+// Then it notifies the function that it has to stop.
 func RunFor(f func(<-chan struct{}), durationStr string) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)

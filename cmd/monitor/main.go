@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/iskorotkov/chaos-monitor/pkg/detector"
-	"github.com/iskorotkov/chaos-monitor/pkg/env"
+	"github.com/iskorotkov/chaos-monitor/pkg/analyzer"
 	"github.com/iskorotkov/chaos-monitor/pkg/kube"
+	"github.com/iskorotkov/chaos-monitor/pkg/parser"
 	"log"
 	"os"
 )
@@ -12,9 +12,9 @@ var (
 	appNS              = os.Getenv("APP_NS")
 	appLabel           = os.Getenv("APP_LABEL")
 	runDuration        = os.Getenv("DURATION")
-	ignoredPods        = env.List(os.Getenv("IGNORED_PODS"))
-	ignoredDeployments = env.List(os.Getenv("IGNORED_DEPLOYMENTS"))
-	ignoredNodes       = env.List(os.Getenv("IGNORED_NODES"))
+	ignoredPods        = parser.AsSet(os.Getenv("IGNORED_PODS"), ";")
+	ignoredDeployments = parser.AsSet(os.Getenv("IGNORED_DEPLOYMENTS"), ";")
+	ignoredNodes       = parser.AsSet(os.Getenv("IGNORED_NODES"), ";")
 )
 
 func main() {
@@ -22,24 +22,22 @@ func main() {
 		appNS = "default"
 	}
 
-	failureDetector := detector.NewFailureDetector(ignoredPods, ignoredDeployments, ignoredNodes, appLabel)
+	logger := log.New(log.Writer(), log.Prefix(), log.Flags())
+	failureDetector := analyzer.NewAnalyzer(ignoredPods, ignoredDeployments, ignoredNodes, appLabel, logger)
 	kube.StartMonitor(appNS, runDuration, lookForFailures(failureDetector))
 }
 
-func lookForFailures(counter detector.FailureDetector) kube.OnUpdateFunction {
+// lookForFailures outputs pod event messages.
+func lookForFailures(counter analyzer.Analyzer) kube.OnUpdateFunction {
 	return func(_, newObj interface{}) {
-		pod, ok := newObj.(*detector.Pod)
+		pod, ok := newObj.(*analyzer.Pod)
 		if !ok {
 			log.Fatal("couldn't cast object to pod")
 		}
 
-		event, err := counter.Updated(pod)
+		err := counter.Analyze(pod)
 		if err != nil {
 			log.Fatal(err)
-		}
-
-		if event != "" {
-			log.Println(event)
 		}
 	}
 }

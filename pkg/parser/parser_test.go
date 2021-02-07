@@ -1,4 +1,4 @@
-package env
+package parser
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"testing/quick"
 )
 
-func TestList(t *testing.T) {
+func TestAsSet(t *testing.T) {
 	t.Parallel()
 
 	r := rand.New(rand.NewSource(0))
@@ -19,7 +19,7 @@ func TestList(t *testing.T) {
 		}
 
 		joined := strings.Join(values, ";")
-		parsed := List(joined)
+		parsed := AsSet(joined, ";")
 
 		if len(values) != len(parsed) {
 			t.Log("length must match")

@@ -1,3 +1,4 @@
+// Package kube handles connections to Kubernetes.
 package kube
 
 import (
@@ -15,10 +16,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// OnUpdateFunction is used by Kubernetes in update handlers.
 type OnUpdateFunction func(oldObj, newObj interface{})
 
+// StartMonitor monitors a specified namespace for a specified amount of time.
+// It calls provided function for each update.
 func StartMonitor(namespace string, durationStr string, f OnUpdateFunction) {
-	watchlist := NewPodsWatchlist(namespace)
+	watchlist := newPodsWatchlist(namespace)
 	functions := cache.ResourceEventHandlerFuncs{UpdateFunc: f}
 
 	_, controller := cache.NewInformer(watchlist, &v1.Pod{}, 0, functions)
@@ -26,13 +30,13 @@ func StartMonitor(namespace string, durationStr string, f OnUpdateFunction) {
 	timer.RunFor(controller.Run, durationStr)
 }
 
-func NewPodsWatchlist(namespace string) *cache.ListWatch {
-	clientset := NewClient()
+func newPodsWatchlist(namespace string) *cache.ListWatch {
+	clientset := newClientset()
 	return cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(), "pods", namespace, fields.Everything())
 }
 
-func NewClient() *kubernetes.Clientset {
-	config := NewConfig()
+func newClientset() *kubernetes.Clientset {
+	config := newConfig()
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Fatalf("couldn't create clientset for config: %s", err)
@@ -41,7 +45,7 @@ func NewClient() *kubernetes.Clientset {
 	return clientset
 }
 
-func NewConfig() *rest.Config {
+func newConfig() *rest.Config {
 	if os.Getenv("KUBERNETES_SERVICE_HOST") != "" {
 		config, err := rest.InClusterConfig()
 		if err != nil {
