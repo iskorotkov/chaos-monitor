@@ -4,8 +4,10 @@ import (
 	"github.com/iskorotkov/chaos-monitor/pkg/analyzer"
 	"github.com/iskorotkov/chaos-monitor/pkg/kube"
 	"github.com/iskorotkov/chaos-monitor/pkg/parser"
+	_ "go.uber.org/automaxprocs"
 	"log"
 	"os"
+	"runtime/debug"
 )
 
 var (
