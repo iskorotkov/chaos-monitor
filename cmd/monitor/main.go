@@ -5,6 +5,7 @@ import (
 	"github.com/iskorotkov/chaos-monitor/pkg/kube"
 	"github.com/iskorotkov/chaos-monitor/pkg/parser"
 	_ "go.uber.org/automaxprocs"
+	v1 "k8s.io/api/core/v1"
 	"log"
 	"os"
 	"runtime/debug"
@@ -42,12 +43,12 @@ func main() {
 // lookForFailures outputs pod event messages.
 func lookForFailures(counter analyzer.Analyzer) kube.OnUpdateFunction {
 	return func(_, newObj interface{}) {
-		pod, ok := newObj.(*analyzer.Pod)
+		pod, ok := newObj.(*v1.Pod)
 		if !ok {
 			log.Fatal("couldn't cast object to pod")
 		}
 
-		err := counter.Analyze(pod)
+		err := counter.Analyze((*analyzer.Pod)(pod))
 		if err != nil {
 			log.Fatal(err)
 		}
