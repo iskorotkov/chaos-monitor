@@ -12,12 +12,11 @@ import (
 )
 
 var (
-	appNS              = os.Getenv("APP_NS")
-	appLabel           = os.Getenv("APP_LABEL")
-	runDuration        = os.Getenv("DURATION")
-	ignoredPods        = parser.AsSet(os.Getenv("IGNORED_PODS"), ";")
-	ignoredDeployments = parser.AsSet(os.Getenv("IGNORED_DEPLOYMENTS"), ";")
-	ignoredNodes       = parser.AsSet(os.Getenv("IGNORED_NODES"), ";")
+	appNS         = os.Getenv("APP_NS")
+	runDuration   = os.Getenv("DURATION")
+	ignoredPods   = parser.AsSet(os.Getenv("IGNORED_PODS"), ";")
+	ignoredLabels = parser.AsSet(os.Getenv("IGNORED_LABELS"), ";")
+	ignoredNodes  = parser.AsSet(os.Getenv("IGNORED_NODES"), ";")
 )
 
 func main() {
@@ -36,7 +35,7 @@ func main() {
 	}
 
 	logger := log.New(log.Writer(), log.Prefix(), log.Flags())
-	failureDetector := analyzer.NewAnalyzer(ignoredPods, ignoredDeployments, ignoredNodes, appLabel, logger)
+	failureDetector := analyzer.NewAnalyzer(ignoredPods, ignoredLabels, ignoredNodes, logger)
 	kube.StartMonitor(appNS, runDuration, lookForFailures(failureDetector))
 }
 

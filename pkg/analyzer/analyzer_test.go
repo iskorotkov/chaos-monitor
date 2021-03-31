@@ -3,6 +3,7 @@ package analyzer
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"testing"
 	"testing/quick"
 )
@@ -12,10 +13,18 @@ func TestAnalyzer_Analyze(t *testing.T) {
 
 	r := rand.New(rand.NewSource(0))
 	f := func(detector Analyzer, pod Pod) bool {
-		pod.Labels[detector.appLabel] = fmt.Sprintf("label-%d", r.Intn(20))
+		someIgnoredLabelKey := ""
+		if len(detector.ignoredLabels) > 0 {
+			for label := range detector.ignoredLabels {
+				strs := strings.Split(label, "=")
+				someIgnoredLabelKey = strs[0]
+			}
+
+			pod.Labels[someIgnoredLabelKey] = fmt.Sprintf("label-%d", r.Intn(20))
+		}
 
 		shouldBeIgnored := detector.ignoredPods[pod.Name] ||
-			detector.ignoredDeployments[pod.Labels[detector.appLabel]] ||
+			detector.ignoredLabels[pod.Labels[someIgnoredLabelKey]] ||
 			detector.ignoredNodes[pod.Spec.NodeName]
 
 		podFailed := pod.Status.ContainerStatuses[0].State.Terminated.Reason == "Error"
@@ -49,6 +58,7 @@ func TestAnalyzer_Analyze(t *testing.T) {
 			return false
 		}
 
+		t.Log("succeeded")
 		return true
 	}
 

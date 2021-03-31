@@ -66,9 +66,8 @@ func (p Pod) Generate(rand *rand.Rand, _ int) reflect.Value {
 
 // Analyzer analyzes pod updates to find pod failures.
 type Analyzer struct {
-	ignoredPods, ignoredDeployments, ignoredNodes map[string]bool
-	appLabel                                      string
-	logger                                        *log.Logger
+	ignoredPods, ignoredLabels, ignoredNodes map[string]bool
+	logger                                   *log.Logger
 }
 
 func (p Analyzer) Generate(rand *rand.Rand, _ int) reflect.Value {
@@ -82,19 +81,27 @@ func (p Analyzer) Generate(rand *rand.Rand, _ int) reflect.Value {
 		return values
 	}
 
+	randomLabelMap := func(key string, prefix string) map[string]bool {
+		values := make(map[string]bool)
+		for i := 0; i < rand.Intn(20); i++ {
+			key := fmt.Sprintf("%s=%s-%d", key, prefix, rand.Intn(10))
+			values[key] = true
+		}
+
+		return values
+	}
+
 	return reflect.ValueOf(Analyzer{
-		ignoredPods:        randomMap("name"),
-		ignoredDeployments: randomMap("app-label"),
-		ignoredNodes:       randomMap("node-name"),
-		appLabel:           fmt.Sprintf("app-label-%d", rand.Intn(10)),
-		logger:             log.New(&bytes.Buffer{}, "", 0),
+		ignoredPods:   randomMap("name"),
+		ignoredLabels: randomLabelMap("label-key", "label-value"),
+		ignoredNodes:  randomMap("node-name"),
+		logger:        log.New(&bytes.Buffer{}, "", 0),
 	})
 }
 
 // Analyze returns an error if the pod has failed and the pod wasn't in ignore list.
 func (p Analyzer) Analyze(pod *Pod) error {
 	podName := pod.Name
-	deploymentName, hasDeployment := pod.Labels[p.appLabel]
 	nodeName := pod.Spec.NodeName
 
 	containersFailed := false
@@ -112,8 +119,8 @@ func (p Analyzer) Analyze(pod *Pod) error {
 	}
 
 	if containersFailed {
-		ignoredMessage := fmt.Sprintf("pod '%s' with label '%s' crashed on node '%s' and was ignored",
-			podName, deploymentName, nodeName)
+		ignoredMessage := fmt.Sprintf("pod '%s' with labels '%v' crashed on node '%s' and was ignored",
+			podName, pod.Labels, nodeName)
 
 		if p.ignoredNodes[nodeName] {
 			p.logger.Println(ignoredMessage)
@@ -125,26 +132,26 @@ func (p Analyzer) Analyze(pod *Pod) error {
 			return nil
 		}
 
-		if hasDeployment {
-			if p.ignoredDeployments[deploymentName] {
+		for k, v := range pod.Labels {
+			appLabel := fmt.Sprintf("%s=%s", k, v)
+			if p.ignoredLabels[appLabel] {
 				p.logger.Println(ignoredMessage)
 				return nil
 			}
 		}
 
-		return fmt.Errorf("pod '%s' with label '%s' crashed on node '%s' and caused fail",
-			podName, deploymentName, nodeName)
+		return fmt.Errorf("pod '%s' with labels '%v' crashed on node '%s' and caused fail",
+			podName, pod.Labels, nodeName)
 	}
 
 	return nil
 }
 
-func NewAnalyzer(ignoredPods, ignoredDeployments, ignoredNodes map[string]bool, appLabel string, logger *log.Logger) Analyzer {
+func NewAnalyzer(ignoredPods, ignoredDeployments, ignoredNodes map[string]bool, logger *log.Logger) Analyzer {
 	return Analyzer{
-		ignoredPods:        ignoredPods,
-		ignoredDeployments: ignoredDeployments,
-		ignoredNodes:       ignoredNodes,
-		appLabel:           appLabel,
-		logger:             logger,
+		ignoredPods:   ignoredPods,
+		ignoredLabels: ignoredDeployments,
+		ignoredNodes:  ignoredNodes,
+		logger:        logger,
 	}
 }
